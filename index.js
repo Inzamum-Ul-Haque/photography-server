@@ -30,15 +30,30 @@ const client = new MongoClient(uri, {
 async function run() {
   const serviceCollection = client.db("serviceReview").collection("services");
 
-  app.get("/services", async (req, res) => {
-    const query = {};
-    const cursor = serviceCollection.find(query);
-    const result = await cursor.toArray();
-    res.send({
-      status: "true",
-      data: result,
+  try {
+    // get all services from db
+    app.get("/services", async (req, res) => {
+      const query = {};
+      const cursor = serviceCollection.find(query);
+      const result = await cursor.toArray();
+      res.send({
+        status: "true",
+        data: result,
+      });
     });
-  });
+
+    // get only top 3 services
+    app.get("/topServices", async (req, res) => {
+      const query = {};
+      const cursor = serviceCollection.find();
+      const result = await cursor.limit(3).toArray();
+      res.send({
+        status: "true",
+        data: result,
+      });
+    });
+  } finally {
+  }
 }
 
 run().catch((error) => console.error(error));
