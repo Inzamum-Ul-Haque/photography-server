@@ -148,7 +148,7 @@ async function run() {
     // get the reviews posted by a specific user
     app.get("/myReviews", verifyJWt, async (req, res) => {
       const decoded = req.decoded;
-      // console.log("inside reviews api", decoded);
+
       if (decoded.userEmail !== req.query.email) {
         return res.status(401).send({
           status: false,
@@ -157,18 +157,10 @@ async function run() {
         });
       }
 
-      // if (decoded.uid !== req.query.uid) {
-      //   return res.status(401).send({
-      //     status: false,
-      //     message: "Unauthorized access",
-      //     data: [],
-      //   });
-      // }
-
       const id = req.query.uid;
       const query = { userId: id };
       const cursor = reviewCollection.find(query);
-      const reviews = await cursor.toArray();
+      const reviews = await cursor.sort({ reviewedAt: -1 }).toArray();
       res.send({
         status: true,
         data: reviews,
