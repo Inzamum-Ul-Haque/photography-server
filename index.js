@@ -37,7 +37,7 @@ async function run() {
       const cursor = serviceCollection.find(query);
       const result = await cursor.toArray();
       res.send({
-        status: "true",
+        status: true,
         data: result,
       });
     });
@@ -48,7 +48,7 @@ async function run() {
       const cursor = serviceCollection.find();
       const result = await cursor.limit(3).toArray();
       res.send({
-        status: "true",
+        status: true,
         data: result,
       });
     });
@@ -59,8 +59,18 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const result = await serviceCollection.findOne(query);
       res.send({
-        status: "true",
+        status: true,
         data: result,
+      });
+    });
+
+    // add a service
+    app.post("/addService", async (req, res) => {
+      const service = req.body;
+      const result = await serviceCollection.insertOne(service);
+      res.send({
+        status: true,
+        message: "Service added successfully!",
       });
     });
   } finally {
