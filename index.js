@@ -29,6 +29,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   const serviceCollection = client.db("serviceReview").collection("services");
+  const reviewCollection = client.db("serviceReview").collection("reviews");
 
   try {
     // get all services from db
@@ -68,9 +69,57 @@ async function run() {
     app.post("/addService", async (req, res) => {
       const service = req.body;
       const result = await serviceCollection.insertOne(service);
+      if (result.acknowledged) {
+        res.send({
+          status: true,
+          message: "Service added successfully!",
+        });
+      } else {
+        res.send({
+          status: false,
+          message: "An error occurred! Try again",
+        });
+      }
+    });
+
+    // add review in a service
+    app.post("/addReview", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      if (result.acknowledged) {
+        res.send({
+          status: true,
+          message: "Review added!",
+        });
+      } else {
+        res.send({
+          status: false,
+          message: "An error occurred! Try again!",
+        });
+      }
+    });
+
+    // get reviews of a specific service
+    app.get("/review/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { service_id: id };
+      const cursor = reviewCollection.find(query);
+      const reviews = await cursor.toArray();
       res.send({
         status: true,
-        message: "Service added successfully!",
+        data: reviews,
+      });
+    });
+
+    // get the reviews posted by a specific user
+    app.get("/myReviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { userId: id };
+      const cursor = reviewCollection.find(query);
+      const reviews = await cursor.toArray();
+      res.send({
+        status: true,
+        data: reviews,
       });
     });
   } finally {
