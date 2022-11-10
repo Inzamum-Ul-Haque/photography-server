@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 // define port and app
@@ -11,6 +12,30 @@ const app = express();
 // middlewares
 app.use(cors());
 app.use(express.json());
+
+function verifyJWt(req, res, next) {
+  const authHeader = req.header.authorization;
+  if (!authHeader) {
+    return res.status(401).send({
+      status: false,
+      message: "Unauthorized access!!",
+      data: [],
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(403).send({
+        status: false,
+        message: "Invalid access token!",
+        data: [],
+      });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // default api
 app.get("/", (req, res) => {
@@ -32,6 +57,15 @@ async function run() {
   const reviewCollection = client.db("serviceReview").collection("reviews");
 
   try {
+    // send jwt token
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
     // get all services from db
     app.get("/services", async (req, res) => {
       const query = {};
@@ -46,8 +80,8 @@ async function run() {
     // get only top 3 services
     app.get("/topServices", async (req, res) => {
       const query = {};
-      const cursor = serviceCollection.find();
-      const result = await cursor.limit(3).toArray();
+      const cursor = serviceCollection.find(query);
+      const result = await cursor.sort({ _id: -1 }).limit(3).toArray();
       res.send({
         status: true,
         data: result,
@@ -113,6 +147,17 @@ async function run() {
 
     // get the reviews posted by a specific user
     app.get("/myReviews/:id", async (req, res) => {
+      // const decoded = req.decoded;
+      // console.log(decoded);
+
+      // if (decoded.uid !== req.query.uid) {
+      //   return res.status(401).send({
+      //     status: false,
+      //     message: "Unauthorized access",
+      //     data: [],
+      //   });
+      // }
+
       const id = req.params.id;
       const query = { userId: id };
       const cursor = reviewCollection.find(query);
@@ -120,6 +165,17 @@ async function run() {
       res.send({
         status: true,
         data: reviews,
+      });
+    });
+
+    // delete a review
+    app.delete("/review/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await reviewCollection.deleteOne(query);
+      res.send({
+        status: true,
+        message: "Review deleted!",
       });
     });
   } finally {
