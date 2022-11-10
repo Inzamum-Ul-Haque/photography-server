@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 function verifyJWt(req, res, next) {
-  const authHeader = req.header.authorization;
+  const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).send({
       status: false,
@@ -146,9 +146,16 @@ async function run() {
     });
 
     // get the reviews posted by a specific user
-    app.get("/myReviews/:id", async (req, res) => {
-      // const decoded = req.decoded;
-      // console.log(decoded);
+    app.get("/myReviews", verifyJWt, async (req, res) => {
+      const decoded = req.decoded;
+      // console.log("inside reviews api", decoded);
+      if (decoded.userEmail !== req.query.email) {
+        return res.status(401).send({
+          status: false,
+          message: "Unauthorized access!",
+          data: [],
+        });
+      }
 
       // if (decoded.uid !== req.query.uid) {
       //   return res.status(401).send({
@@ -158,7 +165,7 @@ async function run() {
       //   });
       // }
 
-      const id = req.params.id;
+      const id = req.query.uid;
       const query = { userId: id };
       const cursor = reviewCollection.find(query);
       const reviews = await cursor.toArray();
@@ -176,6 +183,24 @@ async function run() {
       res.send({
         status: true,
         message: "Review deleted!",
+      });
+    });
+
+    // update a review
+    app.patch("/review/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          review: req.body.updated,
+          reviewedAt: req.body.reviewedAt,
+        },
+      };
+
+      const result = await reviewCollection.updateOne(query, updatedDoc);
+      res.send({
+        status: true,
+        message: "Data updated successfully!",
       });
     });
   } finally {
